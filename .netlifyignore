@@ -1,0 +1,15 @@
+# Ignore backend files for frontend deployment
+app.py
+main.py
+requirements.txt
+runtime.txt
+Procfile
+test_api.py
+config.py
+setup.py
+*.feather
+*.npy
+*.zip
+*.dat
+.venv/
+__pycache__/
