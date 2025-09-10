@@ -6,7 +6,7 @@ A modern, intelligent movie recommendation platform that provides personalized s
 **Institution:** Minor in AI from IIT Ropar (iitrprai_24081389)  
 **Project Type:** AI/ML Web Application
 
-![Movie Explorer Banner](screenshots/homepage.png)
+![MoviesMate Banner](screenshots/homepage.png)
 
 ## ✨ Features
 
@@ -94,7 +94,7 @@ A modern, intelligent movie recommendation platform that provides personalized s
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd movie-explorer
+cd MoviesMate
 ```
 
 ### 2. Install Dependencies

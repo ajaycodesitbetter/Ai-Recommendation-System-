@@ -101,7 +101,7 @@ function initializeApp() {
 // USER PROFILE MANAGEMENT
 // ===========================================
 function loadUserProfile() {
-    const saved = localStorage.getItem('movieExplorerProfile');
+    const saved = localStorage.getItem('MoviesMateProfile');
     if (saved) {
         userProfile = { ...userProfile, ...JSON.parse(saved) };
     }
@@ -110,7 +110,7 @@ function loadUserProfile() {
 
 function saveUserProfile() {
     userProfile.timestamp = new Date();
-    localStorage.setItem('movieExplorerProfile', JSON.stringify(userProfile));
+    localStorage.setItem('MoviesMateProfile', JSON.stringify(userProfile));
 }
 
 async function detectUserLocation() {
@@ -118,7 +118,7 @@ async function detectUserLocation() {
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const language = navigator.language || navigator.userLanguage;
         
-        if (!localStorage.getItem('movieExplorerProfile')) {
+        if (!localStorage.getItem('MoviesMateProfile')) {
             userProfile.language = [language.split('-')[0]];
             userProfile.region = language.split('-')[1] || 'US';
         }
