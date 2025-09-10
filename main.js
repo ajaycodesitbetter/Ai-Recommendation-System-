@@ -1377,6 +1377,27 @@ function updateRatingButtons(movieId) {
 // EVENT LISTENERS
 // ===========================================
 function setupEventListeners() {
+    // Home link functionality
+    document.querySelectorAll('a[title="Go to Homepage"]').forEach(homeLink => {
+        homeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Clear search results
+            document.getElementById('search-results').classList.add('hidden');
+            document.getElementById('recommendations').classList.add('hidden');
+            document.getElementById('search-input').value = '';
+            
+            // Smooth scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Show toast
+            showToast('Welcome back to MoviesMate! 🎬', 'success');
+            
+            // Optional: Refresh trending movies
+            loadInitialData();
+        });
+    });
+
     // Search
     document.getElementById('search-btn').addEventListener('click', () => {
         const query = document.getElementById('search-input').value.trim();

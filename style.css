@@ -603,3 +603,31 @@ body { font-family: 'Inter', sans-serif; }
     animation: sparkle 2s ease-in-out infinite, float 2s ease-in-out infinite;
     filter: drop-shadow(0 8px 16px rgba(255, 107, 53, 0.5)) drop-shadow(0 0 20px rgba(239, 68, 68, 0.3));
 }
+
+/* MoviesMate Home Link Styles */
+a.no-underline {
+    text-decoration: none !important;
+    color: inherit;
+}
+
+a.no-underline:hover {
+    text-decoration: none !important;
+    color: inherit;
+}
+
+a.no-underline:visited {
+    text-decoration: none !important;
+    color: inherit;
+}
+
+/* Smooth transition for home link */
+a[title="Go to Homepage"] {
+    transition: all 0.3s ease;
+    border-radius: 1rem;
+    padding: 0.25rem;
+}
+
+a[title="Go to Homepage"]:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
+}
