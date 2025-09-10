@@ -1,3 +1,13 @@
+/**
+ * MoviesMate - AI-Powered Movie Recommendation System
+ * Frontend JavaScript Application
+ * 
+ * Author: Ajay Mathuriya
+ * Institution: Minor in AI from IIT Ropar (iitrprai_24081389)
+ * 
+ * This file contains the complete frontend logic for the MoviesMate application,
+ * including user interface interactions, API calls, and data management.
+ */
 
 // ===========================================
 // CONFIGURATION & CONSTANTS

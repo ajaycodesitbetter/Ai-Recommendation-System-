@@ -1,3 +1,17 @@
+"""
+MoviesMate - AI-Powered Movie Recommendation System
+FastAPI Backend Server
+
+Author: Ajay Mathuriya
+Institution: Minor in AI from IIT Ropar (iitrprai_24081389)
+
+This backend server provides AI-powered movie recommendations using:
+- Content-based filtering with cosine similarity
+- Real-time search with fuzzy matching
+- Multi-language support and safety filtering
+- Integration with The Movie Database (TMDB) API
+"""
+
 from fastapi import FastAPI, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

@@ -1,3 +1,13 @@
+/**
+ * MoviesMate - AI-Powered Movie Recommendation System
+ * Custom Stylesheet with Animations
+ * 
+ * Author: Ajay Mathuriya
+ * Institution: Minor in AI from IIT Ropar (iitrprai_24081389)
+ * 
+ * Features beautiful dark theme, gradient animations, and responsive design
+ */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 body { font-family: 'Inter', sans-serif; }
 

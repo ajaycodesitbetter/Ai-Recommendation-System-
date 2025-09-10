@@ -1,3 +1,13 @@
+/**
+ * MoviesMate - AI-Powered Movie Recommendation System
+ * Configuration Management
+ * 
+ * Author: Ajay Mathuriya
+ * Institution: Minor in AI from IIT Ropar (iitrprai_24081389)
+ * 
+ * Handles environment variables and application configuration
+ */
+
 // Configuration loader for environment variables
 class Config {
     constructor() {
