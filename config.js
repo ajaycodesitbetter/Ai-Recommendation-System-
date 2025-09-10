@@ -6,13 +6,13 @@ class Config {
 
     loadConfig() {
         // Load from config.env file or use defaults
-        this.TMDB_API_KEY = this.getEnvVar('TMDB_API_KEY', 'your_tmdb_api_key_here');
+        this.TMDB_API_KEY = this.getEnvVar('TMDB_API_KEY', '55fcc2429d81d7ed94dc77fd99dc4619');
         this.TMDB_BASE_URL = this.getEnvVar('TMDB_BASE_URL', 'https://api.themoviedb.org/3');
         this.IMAGE_BASE_URL = this.getEnvVar('IMAGE_BASE_URL', 'https://image.tmdb.org/t/p/w500');
         this.FALLBACK_POSTER_URL = this.getEnvVar('FALLBACK_POSTER_URL', 'https://dummyimage.com/500x750/1f2937/9ca3af&text=No+Poster');
         this.YOUTUBE_BASE_URL = this.getEnvVar('YOUTUBE_BASE_URL', 'https://www.youtube.com/watch?v=');
         
-        this.BACKEND_BASE_URL = this.getEnvVar('BACKEND_BASE_URL', 'http://127.0.0.1:8000');
+        this.BACKEND_BASE_URL = this.getEnvVar('BACKEND_BASE_URL', 'https://api.themoviedb.org/3'); // Direct TMDB for demo
         this.API_TIMEOUT_SEC = parseInt(this.getEnvVar('API_TIMEOUT_SEC', '20'));
         this.API_MAX_RETRIES = parseInt(this.getEnvVar('API_MAX_RETRIES', '3'));
         
