@@ -604,6 +604,22 @@ body { font-family: 'Inter', sans-serif; }
     filter: drop-shadow(0 8px 16px rgba(255, 107, 53, 0.5)) drop-shadow(0 0 20px rgba(239, 68, 68, 0.3));
 }
 
+/* Branding images */
+.brand-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.brand-wordmark {
+    height: 28px; /* adjusts wordmark height to align with header */
+    width: auto;
+    display: block;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+}
+
 /* MoviesMate Home Link Styles */
 a.no-underline {
     text-decoration: none !important;

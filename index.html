@@ -20,12 +20,15 @@
         <nav class="container mx-auto px-4 md:px-6 py-4">
             <div class="flex items-center justify-between">
                 <a href="/" class="flex items-center space-x-3 no-underline" title="Go to Homepage">
-                    <div class="p-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg moviesmatelogo">
+                    <!-- Brand icon image (fallbacks to lucide icon if missing) -->
+                    <img src="assets/moviesmate-icon.png" alt="MoviesMate Icon" class="brand-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
+                    <div class="fallback-icon p-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg moviesmatelogo" style="display:none">
                         <i data-lucide="film" class="w-6 h-6"></i>
                     </div>
-                    <h1 class="text-xl md:text-2xl moviesmatetext">
-                        MoviesMate
-                    </h1>
+
+                    <!-- Wordmark image (fallbacks to text if missing) -->
+                    <img src="assets/moviesmate-wordmark.png" alt="MoviesMate" class="brand-wordmark" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+                    <h1 class="text-xl md:text-2xl moviesmatetext" style="display:none">MoviesMate</h1>
                 </a>
                 <div class="flex items-center space-x-2 md:space-x-4">
                     <button id="profile-btn" class="relative flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-br from-orange-600 to-red-600 shadow-lg border-2 border-white/10 hover:scale-105 transition-transform ring-2 ring-orange-400/30 focus:outline-none">
@@ -532,12 +535,14 @@
     <footer class="bg-gray-900/50 backdrop-blur-sm mt-16 py-8 border-t border-gray-800">
         <div class="container mx-auto px-4 md:px-6 text-center">
             <a href="/" class="flex items-center justify-center space-x-3 mb-4 no-underline" title="Go to Homepage">
-                <div class="p-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg moviesmatelogo">
+                <!-- Footer brand icon image (fallbacks to icon) -->
+                <img src="assets/moviesmate-icon.png" alt="MoviesMate Icon" class="brand-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
+                <div class="fallback-icon p-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg moviesmatelogo" style="display:none">
                     <i data-lucide="film" class="w-5 h-5"></i>
                 </div>
-                <h3 class="text-xl moviesmatetext">
-                    MoviesMate
-                </h3>
+                <!-- Footer wordmark image (fallbacks to text) -->
+                <img src="assets/moviesmate-wordmark.png" alt="MoviesMate" class="brand-wordmark" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+                <h3 class="text-xl moviesmatetext" style="display:none">MoviesMate</h3>
             </a>
             <p class="text-gray-400 mb-2">AI-Powered Movie Recommendation System</p>
             <p class="text-sm text-gray-500">
