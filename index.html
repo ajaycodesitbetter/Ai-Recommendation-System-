@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MovieMate - AI-Powered Movie Recommendations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Google Fonts for animated emojis -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="tailwind-config.js"></script>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.png">
+</head>
+<body class="dark-gradient min-h-screen text-white">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 glass-effect">
+        <nav class="container mx-auto px-4 md:px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg">
+                        <i data-lucide="film" class="w-6 h-6"></i>
+                    </div>
+                    <h1 class="text-xl md:text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+                        MovieMate
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-2 md:space-x-4">
+                    <button id="profile-btn" class="relative flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-br from-orange-600 to-red-600 shadow-lg border-2 border-white/10 hover:scale-105 transition-transform ring-2 ring-orange-400/30 focus:outline-none">
+                        <img id="profile-pic" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff" alt="Profile" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md">
+                    </button>
+                    <button id="watchlist-btn" class="relative p-2 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-colors">
+                        <i data-lucide="bookmark" class="w-5 h-5"></i>
+                        <span id="watchlist-count" class="absolute -top-2 -right-2 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container mx-auto px-4 md:px-6 py-8">
+        <!-- Search Section -->
+        <section class="mb-12">
+            <div class="max-w-4xl mx-auto">
+                <div class="relative mb-4">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
+                    </div>
+                    <input 
+                        id="search-input" 
+                        type="text" 
+                        placeholder="Search for movies..."
+                        class="w-full pl-12 pr-4 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl focus:outline-none search-glow focus:border-orange-500 transition-all text-white placeholder-gray-400"
+                        autocomplete="off"
+                    >
+                    <button 
+                        id="search-btn"
+                        class="absolute right-2 top-1/2 transform -translate-y-1/2 text-white bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-xl focus:outline-none"
+                    >
+                        Search
+                    </button>
+                    
+                    <!-- Search Suggestions Dropdown -->
+                    <div id="search-suggestions" class="absolute top-full left-0 right-0 mt-2 bg-gray-800/95 border border-gray-700 rounded-xl shadow-2xl backdrop-blur-xl z-50 max-h-80 overflow-y-auto hidden">
+                        <div id="suggestions-content" class="p-2">
+                            <!-- Suggestions will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+
+        <div id="loading-spinner" class="flex justify-center my-6 hidden">
+            <svg class="animate-spin h-10 w-10 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+        </div>
+
+        <!-- Search Results -->
+        <section id="search-results" class="mb-12 hidden">
+            <div class="section-navigation">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i data-lucide="search" class="w-6 h-6 mr-3 text-orange-400"></i>
+                    Search Results
+                </h2>
+                <div class="nav-controls">
+                    <button class="nav-btn" onclick="scrollSection('search-movies', 'left')" title="Scroll Left (←)">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <button class="nav-btn" onclick="scrollSection('search-movies', 'right')" title="Scroll Right (→)">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="horizontal-scroll scrollbar-hide pb-4" id="search-movies-container">
+                <div id="search-movies" class="flex gap-6"></div>
+                <div class="scroll-indicator">
+                    <div class="scroll-progress" id="search-movies-progress"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recommendations -->
+        <section id="recommendations" class="mb-12 hidden">
+            <div class="section-navigation">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i data-lucide="target" class="w-6 h-6 mr-3 text-green-400"></i>
+                    You Might Also Like
+                </h2>
+                <div class="nav-controls">
+                    <button class="nav-btn" onclick="scrollSection('recommendation-movies', 'left')" title="Scroll Left (←)">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <button class="nav-btn" onclick="scrollSection('recommendation-movies', 'right')" title="Scroll Right (→)">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="horizontal-scroll scrollbar-hide pb-4" id="recommendation-movies-container">
+                <div id="recommendation-movies" class="flex gap-6"></div>
+                <div class="scroll-indicator">
+                    <div class="scroll-progress" id="recommendation-movies-progress"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trending Movies -->
+        <section class="mb-12">
+            <div class="section-navigation">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i data-lucide="trending-up" class="w-6 h-6 mr-3 text-red-400"></i>
+                    Trending Now
+                </h2>
+                <div class="nav-controls">
+                    <button class="nav-btn" onclick="scrollSection('trending-movies', 'left')" title="Scroll Left (←)">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <button class="nav-btn" onclick="scrollSection('trending-movies', 'right')" title="Scroll Right (→)">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="horizontal-scroll scrollbar-hide pb-4" id="trending-movies-container">
+                <div id="trending-movies" class="flex gap-6">
+                    <div class="movie-card bg-gray-800/30 rounded-2xl p-4 animate-pulse min-w-[200px]">
+                        <div class="bg-gray-700 rounded-xl h-64 mb-4"></div>
+                        <div class="bg-gray-700 h-4 rounded mb-2"></div>
+                        <div class="bg-gray-700 h-3 rounded mb-2"></div>
+                    </div>
+                </div>
+                <div class="scroll-indicator">
+                    <div class="scroll-progress" id="trending-movies-progress"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Top Rated Movies -->
+        <section class="mb-12">
+            <div class="section-navigation">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i data-lucide="award" class="w-6 h-6 mr-3 text-yellow-400"></i>
+                    Top Rated
+                </h2>
+                <div class="nav-controls">
+                    <button class="nav-btn" onclick="scrollSection('toprated-movies', 'left')" title="Scroll Left (←)">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <button class="nav-btn" onclick="scrollSection('toprated-movies', 'right')" title="Scroll Right (→)">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="horizontal-scroll scrollbar-hide pb-4" id="toprated-movies-container">
+                <div id="toprated-movies" class="flex gap-6">
+                    <div class="bg-gray-800/30 rounded-2xl p-4 animate-pulse min-w-[200px]">
+                        <div class="bg-gray-700 rounded-xl h-64 mb-4"></div>
+                        <div class="bg-gray-700 h-4 rounded mb-2"></div>
+                        <div class="bg-gray-700 h-3 rounded mb-2"></div>
+                    </div>
+                </div>
+                <div class="scroll-indicator">
+                    <div class="scroll-progress" id="toprated-movies-progress"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recommended for You -->
+        <section id="user-recommendations" class="mb-12">
+            <div class="section-navigation">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i data-lucide="heart" class="w-6 h-6 mr-3 text-red-400"></i>
+                    Recommended for You
+                </h2>
+                <div class="nav-controls">
+                    <button class="nav-btn" onclick="scrollSection('user-recommendation-movies', 'left')" title="Scroll Left (←)">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <button class="nav-btn" onclick="scrollSection('user-recommendation-movies', 'right')" title="Scroll Right (→)">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="horizontal-scroll scrollbar-hide pb-4" id="user-recommendation-movies-container">
+                <div id="user-recommendation-movies" class="flex gap-6">
+                    <div class="text-center py-12 text-gray-400">
+                        <i data-lucide="heart" class="w-16 h-16 mx-auto mb-4"></i>
+                        <p>Watch more movies to get personalized recommendations</p>
+                    </div>
+                </div>
+                <div class="scroll-indicator">
+                    <div class="scroll-progress" id="user-recommendation-movies-progress"></div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-gray-900 rounded-3xl p-8 max-w-4xl w-full max-h-[85vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-3xl font-bold flex items-center">
+                        <i data-lucide="user" class="w-8 h-8 mr-3 text-purple-400"></i>
+                        User Profile
+                    </h2>
+                    <button id="close-profile-modal" class="p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                
+                <!-- Profile Picture Section -->
+                <div class="flex flex-col md:flex-row items-center md:items-start gap-8 mb-8">
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="relative">
+                            <img id="profile-pic-large" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff" alt="Profile" class="w-32 h-32 rounded-full border-4 border-purple-500 shadow-lg">
+                            <div class="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20"></div>
+                        </div>
+                        <input type="file" id="profile-pic-input" accept="image/*" class="hidden">
+                        <button onclick="document.getElementById('profile-pic-input').click()" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-6 py-3 rounded-xl text-white font-medium transition-all shadow-lg">
+                            <i data-lucide="camera" class="w-4 h-4 mr-2 inline"></i>
+                            Change Photo
+                        </button>
+                    </div>
+                    
+                    <!-- Basic Info -->
+                    <div class="flex-1 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold mb-3 text-purple-300">Full Name</label>
+                                <input type="text" id="profile-name-input" placeholder="Enter your name" class="w-full bg-gray-800/70 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-3 text-purple-300">Age</label>
+                                <input type="number" id="profile-age-input" min="13" max="100" placeholder="25" class="w-full bg-gray-800/70 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none transition-colors">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold mb-3 text-purple-300">Region</label>
+                                <select id="profile-region-input" class="w-full bg-gray-800/70 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition-colors">
+                                    <option value="US">🇺🇸 United States</option>
+                                    <option value="IN">🇮🇳 India</option>
+                                    <option value="GB">🇬🇧 United Kingdom</option>
+                                    <option value="CA">🇨🇦 Canada</option>
+                                    <option value="AU">🇦🇺 Australia</option>
+                                    <option value="DE">🇩🇪 Germany</option>
+                                    <option value="FR">🇫🇷 France</option>
+                                    <option value="JP">🇯🇵 Japan</option>
+                                    <option value="KR">🇰🇷 South Korea</option>
+                                    <option value="BR">🇧🇷 Brazil</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-3 text-purple-300">Preferred Languages</label>
+                                
+                                <!-- Custom Language Selector -->
+                                <div class="language-select-container">
+                                    <div class="bg-gray-800/70 border border-gray-600 rounded-xl max-h-24 overflow-y-auto">
+                                        <div class="language-option" data-lang="en">
+                                            <span class="text-lg">🇺🇸</span>
+                                            <span>English</span>
+                                        </div>
+                                        <div class="language-option" data-lang="hi">
+                                            <span class="text-lg">🇮🇳</span>
+                                            <span>Hindi</span>
+                                        </div>
+                                        <div class="language-option" data-lang="es">
+                                            <span class="text-lg">🇪🇸</span>
+                                            <span>Spanish</span>
+                                        </div>
+                                        <div class="language-option" data-lang="fr">
+                                            <span class="text-lg">🇫🇷</span>
+                                            <span>French</span>
+                                        </div>
+                                        <div class="language-option" data-lang="de">
+                                            <span class="text-lg">🇩🇪</span>
+                                            <span>German</span>
+                                        </div>
+                                        <div class="language-option" data-lang="ja">
+                                            <span class="text-lg">🇯🇵</span>
+                                            <span>Japanese</span>
+                                        </div>
+                                        <div class="language-option" data-lang="ko">
+                                            <span class="text-lg">🇰🇷</span>
+                                            <span>Korean</span>
+                                        </div>
+                                        <div class="language-option" data-lang="pt">
+                                            <span class="text-lg">🇵🇹</span>
+                                            <span>Portuguese</span>
+                                        </div>
+                                        <div class="language-option" data-lang="it">
+                                            <span class="text-lg">🇮🇹</span>
+                                            <span>Italian</span>
+                                        </div>
+                                        <div class="language-option" data-lang="ru">
+                                            <span class="text-lg">🇷🇺</span>
+                                            <span>Russian</span>
+                                        </div>
+                                    </div>
+                                    <!-- Hidden select for form compatibility -->
+                                    <select id="profile-languages-input" multiple class="hidden">
+                                        <option value="en">English</option>
+                                        <option value="hi">Hindi</option>
+                                        <option value="es">Spanish</option>
+                                        <option value="fr">French</option>
+                                        <option value="de">German</option>
+                                        <option value="ja">Japanese</option>
+                                        <option value="ko">Korean</option>
+                                        <option value="pt">Portuguese</option>
+                                        <option value="it">Italian</option>
+                                        <option value="ru">Russian</option>
+                                    </select>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-2">Click to select/deselect languages</p>
+                                
+                                <!-- Selected Languages Display -->
+                                <div id="selected-languages" class="mt-4">
+                                    <div class="flex flex-wrap gap-2" id="language-badges"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Current Mood Section -->
+                <div class="mb-8">
+                    <label class="block text-sm font-semibold mb-4 text-purple-300">Current Mood</label>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <button class="mood-btn bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 hover:from-yellow-500/30 hover:to-orange-500/30 p-4 rounded-xl text-center transition-all" data-mood="happy">
+                            <div class="google-emoji">
+                                <picture>
+                                    <source srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/263a_fe0f/512.webp" type="image/webp">
+                                    <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/263a_fe0f/512.gif" alt="😃" width="32" height="32">
+                                </picture>
+                            </div>
+                            <div class="text-sm font-medium">Happy</div>
+                        </button>
+                        <button class="mood-btn bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 hover:from-orange-500/30 hover:to-red-500/30 p-4 rounded-xl text-center transition-all" data-mood="excited">
+                            <div class="google-emoji">
+                                <picture>
+                                    <source srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f929/512.webp" type="image/webp">
+                                    <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f929/512.gif" alt="🤩" width="32" height="32">
+                                </picture>
+                            </div>
+                            <div class="text-sm font-medium">Excited</div>
+                        </button>
+                        <button class="mood-btn bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 hover:from-green-500/30 hover:to-emerald-500/30 p-4 rounded-xl text-center transition-all" data-mood="relaxed">
+                            <div class="google-emoji">
+                                <picture>
+                                    <source srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60c/512.webp" type="image/webp">
+                                    <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60c/512.gif" alt="😌" width="32" height="32">
+                                </picture>
+                            </div>
+                            <div class="text-sm font-medium">Relaxed</div>
+                        </button>
+                        <button class="mood-btn bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 hover:from-blue-500/30 hover:to-cyan-500/30 p-4 rounded-xl text-center transition-all" data-mood="adventurous">
+                            <div class="google-emoji">
+                                <picture>
+                                    <source srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f920/512.webp" type="image/webp">
+                                    <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f920/512.gif" alt="🤠" width="32" height="32">
+                                </picture>
+                            </div>
+                            <div class="text-sm font-medium">Adventurous</div>
+                        </button>
+                        <button class="mood-btn bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-500/30 hover:from-pink-500/30 hover:to-rose-500/30 p-4 rounded-xl text-center transition-all" data-mood="romantic">
+                            <div class="google-emoji">
+                                <picture>
+                                    <source srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60d/512.webp" type="image/webp">
+                                    <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60d/512.gif" alt="😍" width="32" height="32">
+                                </picture>
+                            </div>
+                            <div class="text-sm font-medium">Romantic</div>
+                        </button>
+                        <button class="mood-btn bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30 hover:from-purple-500/30 hover:to-indigo-500/30 p-4 rounded-xl text-center transition-all" data-mood="mysterious">
+                            <div class="google-emoji">
+                                <picture>
+                                    <source srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/512.webp" type="image/webp">
+                                    <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/512.gif" alt="🤔" width="32" height="32">
+                                </picture>
+                            </div>
+                            <div class="text-sm font-medium">Mysterious</div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Safety Settings -->
+                <div class="mb-8 p-6 bg-gray-800/50 rounded-2xl border border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-white mb-2">Safety Settings</h3>
+                            <p class="text-sm text-gray-400">Control what content you see</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="safe-mode-input" class="w-5 h-5 rounded bg-gray-700 border-gray-600 text-purple-600 focus:ring-purple-500">
+                            <label for="safe-mode-input" class="text-sm font-medium text-white">Safe Mode (Hide Adult Content)</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Save Button -->
+                <button id="save-profile" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-4 rounded-xl text-white font-semibold text-lg transition-all shadow-lg">
+                    <i data-lucide="save" class="w-5 h-5 mr-2 inline"></i>
+                    Save Profile
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mood Popup -->
+    <div id="mood-popup" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-gray-900 rounded-3xl p-8 max-w-md w-full">
+                <h3 class="text-xl font-bold mb-4 text-center">How are you feeling today?</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <button class="mood-popup-btn bg-yellow-500/20 hover:bg-yellow-500/30 p-4 rounded-xl text-center" data-mood="happy">
+                        <div class="google-emoji">
+                            <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60a/512.gif" alt="😊" width="32" height="32">
+                        </div>
+                        <div class="text-sm">Happy</div>
+                    </button>
+                    <button class="mood-popup-btn bg-orange-500/20 hover:bg-orange-500/30 p-4 rounded-xl text-center" data-mood="excited">
+                        <div class="google-emoji">
+                            <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.gif" alt="🤩" width="32" height="32">
+                        </div>
+                        <div class="text-sm">Excited</div>
+                    </button>
+                    <button class="mood-popup-btn bg-green-500/20 hover:bg-green-500/30 p-4 rounded-xl text-center" data-mood="relaxed">
+                        <div class="google-emoji">
+                            <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60c/512.gif" alt="😌" width="32" height="32">
+                        </div>
+                        <div class="text-sm">Relaxed</div>
+                    </button>
+                    <button class="mood-popup-btn bg-blue-500/20 hover:bg-blue-500/30 p-4 rounded-xl text-center" data-mood="adventurous">
+                        <div class="google-emoji">
+                            <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f920/512.gif" alt="🤠" width="32" height="32">
+                        </div>
+                        <div class="text-sm">Adventurous</div>
+                    </button>
+                    <button class="mood-popup-btn bg-pink-500/20 hover:bg-pink-500/30 p-4 rounded-xl text-center" data-mood="romantic">
+                        <div class="google-emoji">
+                            <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60d/512.gif" alt="😍" width="32" height="32">
+                        </div>
+                        <div class="text-sm">Romantic</div>
+                    </button>
+                    <button class="mood-popup-btn bg-purple-500/20 hover:bg-purple-500/30 p-4 rounded-xl text-center" data-mood="mysterious">
+                        <div class="google-emoji">
+                            <img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/512.gif" alt="🤔" width="32" height="32">
+                        </div>
+                        <div class="text-sm">Mysterious</div>
+                    </button>
+                </div>
+                <button id="skip-mood" class="w-full mt-4 bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-white">
+                    Skip for now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Watchlist Modal -->
+    <div id="watchlist-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-gray-900 rounded-3xl p-8 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i data-lucide="bookmark" class="w-6 h-6 mr-3 text-purple-400"></i>
+                        Your Watchlist
+                    </h2>
+                    <button id="close-modal" class="p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div id="watchlist-content" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div class="text-center py-12 col-span-full">
+                        <i data-lucide="bookmark" class="w-16 h-16 mx-auto text-gray-600 mb-4"></i>
+                        <p class="text-gray-400">Your watchlist is empty</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movie Detail Modal -->
+    <div id="movie-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-gray-900 rounded-3xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div id="movie-detail-content">
+                    <!-- Movie details will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trailer Popup Modal -->
+    <div id="trailer-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[999] hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="relative bg-black rounded-2xl shadow-2xl w-full max-w-3xl" style="aspect-ratio: 16/9;">
+                <button onclick="closeTrailerModal()" class="absolute top-3 right-3 z-10 p-2 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors">
+                    <i data-lucide="x" class="w-6 h-6 text-white"></i>
+                </button>
+                <div id="trailer-iframe-container" class="w-full h-full flex items-center justify-center"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900/50 backdrop-blur-sm mt-16 py-8 border-t border-gray-800">
+        <div class="container mx-auto px-4 md:px-6 text-center">
+            <div class="flex items-center justify-center space-x-3 mb-4">
+                <div class="p-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg">
+                    <i data-lucide="film" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+                    MovieMate
+                </h3>
+            </div>
+            <p class="text-gray-400 mb-2">AI-Powered Movie Recommendation System</p>
+            <p class="text-sm text-gray-500">
+                Created by <span class="text-orange-400 font-semibold">Ajay Mathuriya</span> | 
+                <span class="text-orange-400">Minor in AI from IIT Ropar</span> | 
+                Student ID: iitrprai_24081389
+            </p>
+            <p class="text-xs text-gray-600 mt-2">Discover movies that match your vibe ✨</p>
+        </div>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
