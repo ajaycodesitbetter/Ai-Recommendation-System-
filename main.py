@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -38,6 +40,9 @@ class MovieOut(BaseModel):
 
 
 app = FastAPI()
+
+# Mount static files (CSS, JS, images)
+app.mount("/static", StaticFiles(directory="."), name="static")
 
 # CORS: allow frontend access
 app.add_middleware(
@@ -101,10 +106,15 @@ def get_tmdb_data_cached(movie_id: int):
     return {}
 
 
-# Root endpoint
+# Root endpoint - serve the frontend HTML
 @app.get("/")
 def read_root():
-    return {"message": "MoviesMate API is running!"}
+    return FileResponse('index.html')
+
+# API status endpoint
+@app.get("/api")
+def api_status():
+    return {"message": "MoviesMate API is running!", "created_by": "Ajay Mathuriya, IIT Ropar"}
 
 @app.get("/model/status")
 async def get_model_status():
