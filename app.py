@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv('config.env')
 
-app = FastAPI(title="MovieMate API", description="AI-Powered Movie Recommendations by Ajay Mathuriya, IIT Ropar")
+app = FastAPI(title="MoviesMate API", description="AI-Powered Movie Recommendations by Ajay Mathuriya, IIT Ropar")
 
 # CORS middleware
 app.add_middleware(
@@ -40,7 +40,7 @@ class MovieOut(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"message": "MovieMate API is running!", "created_by": "Ajay Mathuriya, IIT Ropar"}
+    return {"message": "MoviesMate API is running!", "created_by": "Ajay Mathuriya, IIT Ropar"}
 
 @app.get("/model/status")
 async def get_model_status():

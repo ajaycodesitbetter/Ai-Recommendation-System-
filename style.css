@@ -540,3 +540,66 @@ body { font-family: 'Inter', sans-serif; }
         font-size: 0.75rem;
     }
 }
+
+/* MoviesMate Brand Animations */
+@keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes glow-pulse {
+    0% { 
+        text-shadow: 0 0 5px rgba(255, 107, 53, 0.3), 0 0 10px rgba(239, 68, 68, 0.2);
+        transform: scale(1);
+    }
+    50% { 
+        text-shadow: 0 0 20px rgba(255, 107, 53, 0.6), 0 0 30px rgba(239, 68, 68, 0.4), 0 0 40px rgba(236, 72, 153, 0.3);
+        transform: scale(1.02);
+    }
+    100% { 
+        text-shadow: 0 0 5px rgba(255, 107, 53, 0.3), 0 0 10px rgba(239, 68, 68, 0.2);
+        transform: scale(1);
+    }
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+    100% { transform: translateY(0px); }
+}
+
+@keyframes sparkle {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(90deg) scale(1.05); }
+    50% { transform: rotate(180deg) scale(1); }
+    75% { transform: rotate(270deg) scale(1.05); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+.moviesmatetext {
+    background: linear-gradient(-45deg, #ff6b35, #f59e0b, #ef4444, #ec4899, #a855f7, #ff6b35);
+    background-size: 400% 400%;
+    animation: gradient-shift 4s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.moviesmatetext:hover {
+    animation: gradient-shift 2s ease infinite, glow-pulse 1s ease-in-out infinite, float 2s ease-in-out infinite;
+    cursor: pointer;
+}
+
+.moviesmatelogo {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    filter: drop-shadow(0 4px 8px rgba(255, 107, 53, 0.3));
+}
+
+.moviesmatelogo:hover {
+    animation: sparkle 2s ease-in-out infinite, float 2s ease-in-out infinite;
+    filter: drop-shadow(0 8px 16px rgba(255, 107, 53, 0.5)) drop-shadow(0 0 20px rgba(239, 68, 68, 0.3));
+}

@@ -104,7 +104,7 @@ def get_tmdb_data_cached(movie_id: int):
 # Root endpoint
 @app.get("/")
 def read_root():
-    return {"message": "MovieMate API is running!"}
+    return {"message": "MoviesMate API is running!"}
 
 @app.get("/model/status")
 async def get_model_status():

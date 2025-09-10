@@ -1,4 +1,4 @@
-# 🎬 MovieMate - AI-Powered Movie Recommendation System
+# 🎬 MoviesMate - AI-Powered Movie Recommendation System
 
 A modern, intelligent movie recommendation platform that provides personalized suggestions based on user preferences, mood, and viewing history. Built with FastAPI backend and a beautiful, responsive frontend.
 
@@ -202,7 +202,7 @@ The application uses a beautiful dark theme with customizable colors:
 
 ### Project Structure
 ```
-MovieMate/
+MoviesMate/
 ├── main.py                    # FastAPI backend server
 ├── config.py                  # Python configuration loader
 ├── config.js                  # Frontend configuration
@@ -294,7 +294,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **GitHub Repository**: [MovieMate AI Recommendation System](https://github.com/ajaycodesitbetter/Ai-Recommendation-System-)
+- **GitHub Repository**: [MoviesMate AI Recommendation System](https://github.com/ajaycodesitbetter/Ai-Recommendation-System-)
 - **Developer**: Ajay Mathuriya, IIT Ropar
 - **Academic Project**: Minor in AI from IIT Ropar
 
