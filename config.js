@@ -12,7 +12,7 @@ class Config {
         this.FALLBACK_POSTER_URL = this.getEnvVar('FALLBACK_POSTER_URL', 'https://dummyimage.com/500x750/1f2937/9ca3af&text=No+Poster');
         this.YOUTUBE_BASE_URL = this.getEnvVar('YOUTUBE_BASE_URL', 'https://www.youtube.com/watch?v=');
         
-        this.BACKEND_BASE_URL = this.getEnvVar('BACKEND_BASE_URL', 'https://api.themoviedb.org/3'); // Direct TMDB for demo
+        this.BACKEND_BASE_URL = this.getEnvVar('BACKEND_BASE_URL', 'https://ai-recommendation-system-u6q3.onrender.com');
         this.API_TIMEOUT_SEC = parseInt(this.getEnvVar('API_TIMEOUT_SEC', '20'));
         this.API_MAX_RETRIES = parseInt(this.getEnvVar('API_MAX_RETRIES', '3'));
         
