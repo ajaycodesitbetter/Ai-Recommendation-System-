@@ -299,21 +299,86 @@ function buildApiUrl(endpoint, page = 1, additionalParams = {}) {
 }
 
 async function fetchMovies(endpoint, page = 1, filters = {}) {
+    const fetchWithTimeout = async (url, options = {}, timeoutMs = 7000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const res = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(id);
+            return res;
+        } catch (e) {
+            clearTimeout(id);
+            throw e;
+        }
+    };
+
     try {
         let apiUrl;
-        
+        let useBackend = false;
+
         if (endpoint === 'trending/movie/day') {
+            // Try backend first
             apiUrl = buildApiUrl('trending', page, filters);
+            useBackend = true;
         } else if (endpoint === 'movie/top_rated') {
+            // Try backend first
             apiUrl = buildApiUrl('top-rated', page, filters);
+            useBackend = true;
         } else {
-            // Fallback to TMDB for other endpoints
+            // Direct TMDB for other endpoints
             apiUrl = `${TMDB_BASE_URL}/${endpoint}?api_key=${TMDB_API_KEY}&language=en-US&page=${page}&region=${userProfile.region}`;
         }
-        
-        const response = await fetch(apiUrl);
+
+        let response;
+        try {
+            response = await fetchWithTimeout(apiUrl, {}, 7000);
+        } catch (e) {
+            // If backend timed out or failed, fall back to TMDB for known categories
+            if (useBackend) {
+                const fallbackMap = {
+                    'trending/movie/day': `${TMDB_BASE_URL}/trending/movie/day?api_key=${TMDB_API_KEY}&language=en-US&page=${page}&region=${userProfile.region}`,
+                    'movie/top_rated': `${TMDB_BASE_URL}/movie/top_rated?api_key=${TMDB_API_KEY}&language=en-US&page=${page}&region=${userProfile.region}`
+                };
+                const fallbackUrl = fallbackMap[endpoint];
+                if (fallbackUrl) {
+                    try {
+                        response = await fetchWithTimeout(fallbackUrl, {}, 7000);
+                    } catch (fallbackErr) {
+                        console.error('Both backend and TMDB fallback failed:', fallbackErr);
+                        return [];
+                    }
+                } else {
+                    return [];
+                }
+            } else {
+                console.error('Fetch failed:', e);
+                return [];
+            }
+        }
+
+        if (!response || !response.ok) {
+            // Non-OK status: attempt fallback for backend endpoints
+            if (useBackend) {
+                const fallbackMap = {
+                    'trending/movie/day': `${TMDB_BASE_URL}/trending/movie/day?api_key=${TMDB_API_KEY}&language=en-US&page=${page}&region=${userProfile.region}`,
+                    'movie/top_rated': `${TMDB_BASE_URL}/movie/top_rated?api_key=${TMDB_API_KEY}&language=en-US&page=${page}&region=${userProfile.region}`
+                };
+                const fallbackUrl = fallbackMap[endpoint];
+                if (fallbackUrl) {
+                    try {
+                        const fbRes = await fetchWithTimeout(fallbackUrl, {}, 7000);
+                        const fbData = await fbRes.json();
+                        return Array.isArray(fbData) ? fbData : fbData.results || [];
+                    } catch (fbErr) {
+                        console.error('Fallback fetch failed:', fbErr);
+                        return [];
+                    }
+                }
+            }
+            return [];
+        }
+
         const data = await response.json();
-        
         return Array.isArray(data) ? data : data.results || [];
     } catch (error) {
         console.error('Error fetching movies:', error);
@@ -1059,8 +1124,6 @@ async function searchMovies(query) {
             params.set('languages', userProfile.language.join(','));
         }
         
-        // filters removed in UI
-        
         params.set('limit', '10');
         
         // Cache lookup
@@ -1070,8 +1133,33 @@ async function searchMovies(query) {
         if (cached && (Date.now() - cached.time) < CACHE_TTL_MS) {
             results = cached.results;
         } else {
-            const response = await fetch(`${config.BACKEND_BASE_URL}/search?${params.toString()}`, { signal: searchController.signal, cache: 'no-store' });
-            results = await response.json();
+            // Try backend first with timeout
+            const backendUrl = `${config.BACKEND_BASE_URL}/search?${params.toString()}`;
+            const fallbackUrl = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=1`;
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 7000);
+                
+                const response = await fetch(backendUrl, { 
+                    signal: controller.signal, 
+                    cache: 'no-store' 
+                });
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    results = await response.json();
+                } else {
+                    throw new Error('Backend response not OK');
+                }
+            } catch (backendError) {
+                console.warn('Backend search failed, using TMDB fallback:', backendError);
+                // Fallback to direct TMDB search
+                const fallbackResponse = await fetch(fallbackUrl, { cache: 'no-store' });
+                const fallbackData = await fallbackResponse.json();
+                results = fallbackData.results || [];
+            }
+            
             searchResultCache.set(cacheKey, { results, time: Date.now() });
         }
 
