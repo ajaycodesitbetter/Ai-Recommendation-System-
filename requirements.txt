@@ -6,3 +6,7 @@ rapidfuzz==3.14.1
 ftfy==6.3.1
 aiohttp==3.12.15
 python-multipart==0.0.20
+pandas==2.2.3
+numpy==1.26.4
+scikit-learn==1.5.2
+pyarrow==18.0.0

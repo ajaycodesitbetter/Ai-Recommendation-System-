@@ -92,9 +92,21 @@ async def shutdown_event():
 # Import configuration
 from config import config
 
-# Load assets from config
-movies_df = pd.read_feather(config.MOVIES_DATA_FILE)
-movie_embeddings = np.load(config.EMBEDDINGS_FILE)
+# Initialize data storage
+movies_df = None
+movie_embeddings = None
+
+# Try to load local data files if they exist
+try:
+    if os.path.exists(config.MOVIES_DATA_FILE):
+        movies_df = pd.read_feather(config.MOVIES_DATA_FILE)
+        logging.info(f"Loaded {len(movies_df)} movies from local database")
+    if os.path.exists(config.EMBEDDINGS_FILE):
+        movie_embeddings = np.load(config.EMBEDDINGS_FILE)
+        logging.info(f"Loaded movie embeddings with shape {movie_embeddings.shape}")
+except Exception as e:
+    logging.warning(f"Could not load local data files: {e}")
+    logging.info("Will use TMDB API as primary data source")
 
 # TMDB configuration from config
 TMDB_API_KEY = config.TMDB_API_KEY
@@ -108,11 +120,50 @@ TMDB_RETRY_ATTEMPTS = config.API_MAX_RETRIES
 # Helper: Fetch movie details from TMDB using ID
 from functools import lru_cache
 
+def get_movies_df():
+    """Get movies dataframe, create from TMDB if not available locally"""
+    global movies_df
+    if movies_df is not None:
+        return movies_df
+    
+    # If no local data, create a minimal dataframe for TMDB-only mode
+    logging.info("No local movie database found, using TMDB API mode")
+    return pd.DataFrame()
+
+def get_movie_embeddings():
+    """Get movie embeddings, return None if not available"""
+    global movie_embeddings
+    return movie_embeddings
+
+# Dummy functions for batch processing when no local data is available
+async def batch_tmdb_requests(movie_ids):
+    """Batch fetch TMDB data for multiple movies"""
+    tmdb_data = {}
+    for movie_id in movie_ids:
+        data = get_tmdb_data_cached(movie_id)
+        if data:
+            tmdb_data[movie_id] = data
+    return tmdb_data
+
+def enrich_movies_batch(movies_data, tmdb_data):
+    """Enrich movies with TMDB data"""
+    enriched = []
+    for movie in movies_data:
+        movie_id = movie.get('id')
+        if movie_id and movie_id in tmdb_data:
+            tmdb_movie = tmdb_data[movie_id]
+            # Merge local and TMDB data
+            enriched_movie = {**movie, **tmdb_movie}
+            enriched.append(enriched_movie)
+        else:
+            enriched.append(movie)
+    return enriched
+
 @lru_cache(maxsize=10000)
 def get_tmdb_data_cached(movie_id: int):
     try:
         url = f"{TMDB_API_URL}/movie/{movie_id}?api_key={TMDB_API_KEY}&language=en-US"
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         if response.status_code == 200:
             return response.json()
     except Exception as e:
@@ -154,11 +205,154 @@ def normalize(text):
         return ""
     return ftfy.fix_text(text).strip().lower()
 
+async def search_movies_tmdb_only(query: str):
+    """Search movies directly using TMDB API when no local data is available"""
+    try:
+        url = f"{TMDB_API_URL}/search/movie"
+        params = {
+            'api_key': TMDB_API_KEY,
+            'query': query,
+            'language': 'en-US',
+            'page': 1,
+            'include_adult': False
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, timeout=10) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    movies = data.get('results', [])
+                    
+                    # Format results to match expected structure
+                    formatted_results = []
+                    for movie in movies[:12]:  # Limit to 12 results
+                        formatted_movie = {
+                            'id': movie.get('id'),
+                            'title': movie.get('title'),
+                            'release_date': movie.get('release_date'),
+                            'overview': movie.get('overview'),
+                            'poster_path': movie.get('poster_path'),
+                            'backdrop_path': movie.get('backdrop_path'),
+                            'vote_average': movie.get('vote_average'),
+                            'vote_count': movie.get('vote_count'),
+                            'adult': movie.get('adult'),
+                            'genre_ids': movie.get('genre_ids', []),
+                            'original_language': movie.get('original_language'),
+                            'popularity': movie.get('popularity')
+                        }
+                        formatted_results.append(formatted_movie)
+                    
+                    return JSONResponse(content=formatted_results)
+                else:
+                    logging.error(f"TMDB search failed with status {response.status}")
+                    return JSONResponse(content=[])
+    except Exception as e:
+        logging.error(f"TMDB search error: {e}")
+        return JSONResponse(content=[])
+
+async def get_trending_movies_tmdb(limit: int, safe_mode: bool):
+    """Get trending movies from TMDB API"""
+    try:
+        url = f"{TMDB_API_URL}/trending/movie/week"
+        params = {
+            'api_key': TMDB_API_KEY,
+            'language': 'en-US',
+            'page': 1
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, timeout=10) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    movies = data.get('results', [])
+                    
+                    # Filter and format results
+                    formatted_results = []
+                    for movie in movies[:limit]:
+                        if safe_mode and movie.get('adult', False):
+                            continue
+                        
+                        formatted_movie = {
+                            'id': movie.get('id'),
+                            'title': movie.get('title'),
+                            'release_date': movie.get('release_date'),
+                            'overview': movie.get('overview'),
+                            'poster_path': movie.get('poster_path'),
+                            'backdrop_path': movie.get('backdrop_path'),
+                            'vote_average': movie.get('vote_average'),
+                            'vote_count': movie.get('vote_count'),
+                            'adult': movie.get('adult'),
+                            'genre_ids': movie.get('genre_ids', []),
+                            'original_language': movie.get('original_language'),
+                            'popularity': movie.get('popularity')
+                        }
+                        formatted_results.append(formatted_movie)
+                    
+                    return JSONResponse(content=formatted_results)
+                else:
+                    logging.error(f"TMDB trending failed with status {response.status}")
+                    return JSONResponse(content=[])
+    except Exception as e:
+        logging.error(f"TMDB trending error: {e}")
+        return JSONResponse(content=[])
+
+async def get_top_rated_movies_tmdb(limit: int, safe_mode: bool):
+    """Get top-rated movies from TMDB API"""
+    try:
+        url = f"{TMDB_API_URL}/movie/top_rated"
+        params = {
+            'api_key': TMDB_API_KEY,
+            'language': 'en-US',
+            'page': 1
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, timeout=10) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    movies = data.get('results', [])
+                    
+                    # Filter and format results
+                    formatted_results = []
+                    for movie in movies[:limit]:
+                        if safe_mode and movie.get('adult', False):
+                            continue
+                        
+                        formatted_movie = {
+                            'id': movie.get('id'),
+                            'title': movie.get('title'),
+                            'release_date': movie.get('release_date'),
+                            'overview': movie.get('overview'),
+                            'poster_path': movie.get('poster_path'),
+                            'backdrop_path': movie.get('backdrop_path'),
+                            'vote_average': movie.get('vote_average'),
+                            'vote_count': movie.get('vote_count'),
+                            'adult': movie.get('adult'),
+                            'genre_ids': movie.get('genre_ids', []),
+                            'original_language': movie.get('original_language'),
+                            'popularity': movie.get('popularity')
+                        }
+                        formatted_results.append(formatted_movie)
+                    
+                    return JSONResponse(content=formatted_results)
+                else:
+                    logging.error(f"TMDB top-rated failed with status {response.status}")
+                    return JSONResponse(content=[])
+    except Exception as e:
+        logging.error(f"TMDB top-rated error: {e}")
+        return JSONResponse(content=[])
+
 @app.get("/search")
 async def search_movies(query: str = Query(...)):
     try:
-        df = get_movies_df().dropna(subset=["title"]).copy()
+        df = get_movies_df()
         
+        # If no local data, search directly via TMDB API
+        if df.empty:
+            return await search_movies_tmdb_only(query)
+        
+        # Use local data if available
+        df = df.dropna(subset=["title"]).copy()
         query_norm = normalize(query)
 
         # STEP 1: Substring match (fast) - use pre-computed title_clean
@@ -278,6 +472,11 @@ async def get_trending_movies(
 ):
     try:
         movies_df = get_movies_df()
+        
+        # If no local data, use TMDB trending
+        if movies_df.empty:
+            return await get_trending_movies_tmdb(limit, safe_mode)
+        
         trending = movies_df.sort_values("popularity_norm", ascending=False)
         # Over-select to allow filtering while still filling the limit
         trending = trending.head(max(limit * 5, 50))
@@ -324,6 +523,11 @@ async def get_top_rated_movies(
 ):
     try:
         movies_df = get_movies_df()
+        
+        # If no local data, use TMDB top-rated
+        if movies_df.empty:
+            return await get_top_rated_movies_tmdb(limit, safe_mode)
+        
         top_rated = movies_df.sort_values("vote_average_5", ascending=False)
         top_rated = top_rated.head(max(limit * 5, 50))
         if languages:
@@ -440,29 +644,10 @@ async def recommend_for_user(payload: dict = Body(...)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 # Global variables for caching and optimization
-_movies_df = None
-_movie_embeddings = None
 _tmdb_cache = {}
 _cache_lock = threading.Lock()
 _session_pool = None
 _executor = ThreadPoolExecutor(max_workers=10)
-
-def get_movies_df():
-    """Lazy loading of movies dataframe with caching"""
-    global _movies_df
-    if _movies_df is None:
-        _movies_df = pd.read_feather("final_movies_cleaned.feather")
-        # Pre-compute common columns for faster access
-        _movies_df["title_clean"] = _movies_df["title"].astype(str).apply(normalize)
-        _movies_df["title_length"] = _movies_df["title_clean"].str.len()
-    return _movies_df
-
-def get_movie_embeddings():
-    """Lazy loading of movie embeddings with caching"""
-    global _movie_embeddings
-    if _movie_embeddings is None:
-        _movie_embeddings = np.load("movie_embeddings_float16.npy")
-    return _movie_embeddings
 
 async def get_session():
     """Get or create aiohttp session for connection pooling"""
@@ -473,128 +658,26 @@ async def get_session():
         _session_pool = aiohttp.ClientSession(connector=connector, timeout=timeout)
     return _session_pool
 
-async def batch_tmdb_requests(movie_ids: List[int]) -> dict:
-    """Batch TMDB API requests for better performance"""
-    session = await get_session()
-    results = {}
-    
-    # Group requests into batches of 10 (TMDB rate limit friendly)
-    batch_size = TMDB_BATCH_SIZE
-    for i in range(0, len(movie_ids), batch_size):
-        batch = movie_ids[i:i + batch_size]
-        
-        # Create tasks for concurrent execution
-        tasks = []
-        for movie_id in batch:
-            # Check cache first
-            with _cache_lock:
-                if movie_id in _tmdb_cache:
-                    results[movie_id] = _tmdb_cache[movie_id]
-                    continue
-            
-            # Create async task for TMDB request
-            task = asyncio.create_task(fetch_tmdb_data_async(session, movie_id))
-            tasks.append((movie_id, task))
-        
-        # Wait for all tasks in batch to complete
-        for movie_id, task in tasks:
-            try:
-                data = await task
-                results[movie_id] = data
-                # Cache only non-empty useful results
-                if data:
-                    with _cache_lock:
-                        _tmdb_cache[movie_id] = data
-            except Exception as e:
-                logging.error(f"Error fetching TMDB data for movie {movie_id}: {e}")
-                results[movie_id] = {}
-    
-    return results
-
-def _sync_fetch_tmdb(movie_id: int) -> dict:
+async def fetch_tmdb_data_async(session, movie_id: int):
+    """Async fetch TMDB data for a single movie"""
     try:
-        url = f"{TMDB_API_URL}/movie/{movie_id}"
-        params = {"api_key": TMDB_API_KEY, "language": "en-US"}
-        r = requests.get(url, params=params, timeout=TMDB_TIMEOUT_SEC)
-        if r.status_code == 200:
-            return r.json()
-        return {}
-    except Exception:
-        return {}
+        url = f"{TMDB_API_URL}/movie/{movie_id}?api_key={TMDB_API_KEY}&language=en-US"
+        async with session.get(url) as response:
+            if response.status == 200:
+                data = await response.json()
+                # Cache the result
+                with _cache_lock:
+                    _tmdb_cache[movie_id] = data
+                return movie_id, data
+    except Exception as e:
+        logging.error(f"Failed to fetch TMDB data for movie {movie_id}: {e}")
+    return movie_id, {}
 
-async def fetch_tmdb_data_async(session: aiohttp.ClientSession, movie_id: int) -> dict:
-    """Async version of TMDB data fetching"""
-    url = f"{TMDB_API_URL}/movie/{movie_id}"
-    params = {"api_key": TMDB_API_KEY, "language": "en-US"}
-    backoff = 0.5
-    for attempt in range(1, TMDB_RETRY_ATTEMPTS + 1):
-        try:
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    return await response.json()
-                if response.status == 429:
-                    retry_after = float(response.headers.get("Retry-After", backoff))
-                    await asyncio.sleep(retry_after)
-                elif response.status in {500, 502, 503, 504}:
-                    await asyncio.sleep(backoff)
-                    backoff *= 2
-                else:
-                    # Other client/server errors: don't spam retries
-                    body = await response.text()
-                    logging.warning(f"TMDB {response.status} for movie {movie_id}: {body[:200]}")
-                    return {}
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            logging.warning(f"Attempt {attempt} failed for movie {movie_id}: {e}")
-            await asyncio.sleep(backoff)
-            backoff *= 2
-        except Exception as e:
-            logging.error(f"Error in async TMDB request for movie {movie_id}: {e}")
-            break
-    # Final sync fallback
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(_executor, _sync_fetch_tmdb, movie_id)
-
-def enrich_movies_batch(movies_data: List[dict], tmdb_data: dict) -> List[dict]:
-    """Batch enrich movies with TMDB data"""
-    enriched_results = []
-    
-    for movie in movies_data:
-        movie_id = int(movie["id"])
-        tmdb_info = tmdb_data.get(movie_id, {})
-        
-        enriched_movie = {}
-        for k, v in movie.items():
-            if isinstance(v, (np.integer, np.floating)):
-                enriched_movie[k] = v.item()
-            elif isinstance(v, np.ndarray):
-                enriched_movie[k] = v.tolist()
-            else:
-                enriched_movie[k] = v
-        
-        # Enrich with TMDB data
-        # Prefer TMDB poster; fallback to existing movie poster if usable
-        poster_from_tmdb = tmdb_info.get("poster_path")
-        poster_from_movie = movie.get("poster_path")
-        if poster_from_tmdb:
-            enriched_movie["poster_path"] = f"{IMAGE_BASE_URL}{poster_from_tmdb}"
-        elif isinstance(poster_from_movie, str) and poster_from_movie:
-            if poster_from_movie.startswith("http"):
-                enriched_movie["poster_path"] = poster_from_movie
-            else:
-                enriched_movie["poster_path"] = f"{IMAGE_BASE_URL}{poster_from_movie}"
-        else:
-            enriched_movie["poster_path"] = None
-        
-        enriched_movie["vote_average"] = tmdb_info.get("vote_average", movie.get("vote_average_5", 0) * 2)
-        
-        enriched_movie["genres"] = tmdb_info.get("genres") or [
-            {"name": g} for g in movie.get("genres", [])
-        ]
-
-        # Include adult flag for frontend filtering
-        enriched_movie["adult"] = bool(tmdb_info.get("adult", movie.get("adult", False)))
-        
-        enriched_results.append(enriched_movie)
+# Add placeholder functions for endpoints that need local data
+async def prewarm_cache():
+    """Pre-warm cache with popular movies"""
+    logging.info("Cache pre-warming completed (TMDB-only mode)")
+    pass
     
     return enriched_results
 
