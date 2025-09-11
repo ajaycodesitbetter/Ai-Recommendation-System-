@@ -214,7 +214,7 @@ async def search_movies_tmdb_only(query: str):
             'query': query,
             'language': 'en-US',
             'page': 1,
-            'include_adult': False
+            'include_adult': 'false'  # TMDB expects string, not boolean
         }
         
         async with aiohttp.ClientSession() as session:
