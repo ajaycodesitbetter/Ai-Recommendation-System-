@@ -6,7 +6,7 @@ A modern, intelligent movie recommendation platform that provides personalized s
 **Institution:** Minor in AI from IIT Ropar (iitrprai_24081389)  
 **Project Type:** AI/ML Web Application
 
-![MoviesMate Banner](
+
 
 ## ✨ Features
 
@@ -312,3 +312,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
  
 
  
+
